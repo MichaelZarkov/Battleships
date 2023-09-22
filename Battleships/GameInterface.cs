@@ -37,6 +37,10 @@ namespace Battleships
                 System.Console.WriteLine(game.Player1Name + " won the game !!!");
                 System.Console.WriteLine(game.Player1Name + "'s ship board:");
                 PrintShipBoard(game.Player1ShipBoard);
+                System.Console.WriteLine(game.Player1Name + "'s shot board:");
+                PrintShotBoard(game.Player1ShotBoard);
+                System.Console.WriteLine(game.Player2Name + "'s shot board:");
+                PrintShotBoard(game.Player2ShotBoard);
             }
             else
             {
@@ -44,6 +48,10 @@ namespace Battleships
                 System.Console.WriteLine(game.Player2Name + " won the game !!!");
                 System.Console.WriteLine(game.Player2Name + "'s ship board:");
                 PrintShipBoard(game.Player2ShipBoard);
+                System.Console.WriteLine(game.Player2Name + "'s shot board:");
+                PrintShotBoard(game.Player2ShotBoard);
+                System.Console.WriteLine(game.Player1Name + "'s shot board:");
+                PrintShotBoard(game.Player1ShotBoard);
             }
         }
         //---------------------------------------------------------------------------------------------

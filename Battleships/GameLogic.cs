@@ -33,7 +33,7 @@ namespace Battleships
         
         private void MakeDefaultGame()
         {
-            boardSize = 11;   // Sometimes the board can be too small for all the ships to fit.
+            boardSize = 12;   // Sometimes the board can be too small for all the ships to fit.
             shipCount = 5;
             shipsInGame = new (BoardSquares, byte)[NUMBER_OF_SHIP_TYPES]
             {
