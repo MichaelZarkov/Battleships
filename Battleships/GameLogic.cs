@@ -1,4 +1,6 @@
 ﻿
+using System.Threading;
+
 namespace Battleships
 {
     class GameLogic
@@ -202,23 +204,72 @@ namespace Battleships
 
         /*
             Returns true if the ship at the given square is dead.
-            Function expects valid coordinates.
-
-            A ship on the given square is considered alive if at least one of the adjacent left, right, up, and down squares is of a ship type.
-            Note that the given square is not evaluated!
-            Example:
-                _ 1 _      Let the given square be S.
-                2 S 3        - If squares 1, 2, 3 and 4 are 'WATER' for example, the ship is considered dead and the function returns false.
-                _ 4 _        - If square 3 is 'DESTROYER', then the ship is considered alive and functions returns false.
+            Retruns false if at least one of the squares of the ship is still alive.
+            Throws and error if the square given is not some kind of ship square.
+            Doesn't check if the given square is outside the board.
         */
         private static bool IsShipAlive(BoardSquares[,] shipBoard, byte row, byte col)
         {
-            int r = (int)row, c = (int)col;    // Cast so no underflow when subtracting.
+            BoardSquares shipType;
 
-            return (r - 1 >= 0 && shipBoard[r - 1, c] >= 0) ||                        // Up.
-                   (c - 1 >= 0 && shipBoard[r, c - 1] >= 0) ||                        // Left.
-                   (r + 1 < shipBoard.GetLength(0) && shipBoard[r + 1, c] >= 0) ||    // Down.
-                   (c + 1 < shipBoard.GetLength(1) && shipBoard[r, c + 1] >= 0);      // Right.
+            switch (shipBoard[row, col])
+            {   // Invalid input.
+                case BoardSquares.WATER:
+                case BoardSquares.WATER_NO_PLACE:
+                    throw new Exception("'IsShipAlive' functions expects a ship square!");
+                
+                // Ship is alive.
+                case BoardSquares.PATROL_BOAT:
+                case BoardSquares.SUBMARINE:
+                case BoardSquares.DESTROYER:
+                case BoardSquares.BATTLESHIP:
+                case BoardSquares.CARRIER:
+                    return true;
+
+                // Ship might be alive.
+                case BoardSquares.DEAD_PATROL_BOAT: shipType = BoardSquares.PATROL_BOAT; break;
+                case BoardSquares.DEAD_SUBMARINE:   shipType = BoardSquares.SUBMARINE; break;
+                case BoardSquares.DEAD_DESTROYER:   shipType = BoardSquares.DESTROYER; break;
+                case BoardSquares.DEAD_BATTLESHIP:  shipType = BoardSquares.BATTLESHIP; break;
+                case BoardSquares.DEAD_CARRIER:     shipType = BoardSquares.CARRIER; break;
+                
+                default: throw new Exception("'IsShipAlive' non exhaustive switch statement!");
+            }
+
+            int r = row; int c = col - 1;
+            // Left.
+            while (c >= 0 && shipBoard[r, c] != BoardSquares.WATER_NO_PLACE)
+            {
+                if (shipBoard[r, c] == shipType)  // Found a square with alive ship.
+                    return true;
+                --c;
+            }
+            // Right.
+            c = col + 1;
+            while (c < shipBoard.GetLength(1) && shipBoard[r, c] != BoardSquares.WATER_NO_PLACE)
+            {
+                if (shipBoard[r, c] == shipType)
+                    return true;
+                ++c;
+            }
+            // Up.
+            r = row - 1; c = col;
+            while (r >= 0 && shipBoard[r, c] != BoardSquares.WATER_NO_PLACE)
+            {
+                if (shipBoard[r, c] == shipType)
+                    return true;
+                --r;
+            }
+            // Down.
+            r = row + 1;
+            while (r < shipBoard.GetLength(0) && shipBoard[r, c] != BoardSquares.WATER_NO_PLACE)
+            {
+                if (shipBoard[r, c] == shipType)
+                    return true;
+                ++r;
+            }
+
+            return false;
         }
 
         //---------------------------------------------------------------------------------------------
@@ -260,28 +311,33 @@ namespace Battleships
             if (!IsValidCoord(row, col))
                 throw new Exception("Given coordinates are outside the board!");
 
-            if (player2.shipBoard[row, col] >= 0)  // A ship was hit.
-            {
-                player1.shotBoard[row, col] = PlayerInfo.Shots.SHIP_SHOT;   // Mark that 'player1' hit a ship.
+            switch (player2.shipBoard[row, col])
+            {   // A ship is hit.
+                case BoardSquares.PATROL_BOAT:
+                case BoardSquares.SUBMARINE:
+                case BoardSquares.DESTROYER:
+                case BoardSquares.BATTLESHIP:
+                case BoardSquares.CARRIER:
+                    player1.shotBoard[row, col] = PlayerInfo.Shots.SHIP_SHOT;   // Mark that 'player1' hit a ship.
 
-                if (!IsShipAlive(player2.shipBoard, row, col))   // Check if the ship was killed.
-                    --player2.shipsAlive;
+                    BoardSquares square = player2.shipBoard[row, col];  // Return value.
 
-                BoardSquares square = player2.shipBoard[row, col];  // Return value.
+                    // Mark that the ship was hit.
+                    // Note that 'DEAD_<ship_type> == <ship_type> - NUMBER_OF_SHIP_TYPES'.
+                    player2.shipBoard[row, col] = (BoardSquares)((int)player2.shipBoard[row, col] - (int)NUMBER_OF_SHIP_TYPES);
 
-                // Mark that the ship was hit.
-                // Note that 'DEAD_<ship_type> == <ship_type> - NUMBER_OF_SHIP_TYPES'.
-                player2.shipBoard[row, col] = (BoardSquares)((int)player2.shipBoard[row, col] - (int)NUMBER_OF_SHIP_TYPES);
+                    if (!IsShipAlive(player2.shipBoard, row, col))   // Check if the ship was killed.
+                        --player2.shipsAlive;
 
-                return square;    
-            }
-            else    // A ship was not hit.
-            {
-                // Mark down the shot if it was not marked already.
-                if (player1.shotBoard[row, col] == PlayerInfo.Shots.NO_SHOT)
-                    player1.shotBoard[row, col] = PlayerInfo.Shots.WATER_SHOT;
-                
-                return player2.shipBoard[row, col];
+                    return square;
+
+                // Ship is not hit.
+                default:
+                    // Mark down the shot if it was not marked already.
+                    if (player1.shotBoard[row, col] != PlayerInfo.Shots.SHIP_SHOT)
+                        player1.shotBoard[row, col] = PlayerInfo.Shots.WATER_SHOT;
+
+                    return player2.shipBoard[row, col];
             }
         }
         // Returns the type of the square that was hit.
@@ -290,28 +346,33 @@ namespace Battleships
             if (!IsValidCoord(row, col))
                 throw new Exception("Given coordinates are outside the board!");
 
-            if (player1.shipBoard[row, col] >= 0)  // A ship was hit.
-            {
-                player2.shotBoard[row, col] = PlayerInfo.Shots.SHIP_SHOT;   // Mark that 'player2' hit a ship.
+            switch (player1.shipBoard[row, col])
+            {   // A ship is hit.
+                case BoardSquares.PATROL_BOAT:
+                case BoardSquares.SUBMARINE:
+                case BoardSquares.DESTROYER:
+                case BoardSquares.BATTLESHIP:
+                case BoardSquares.CARRIER:
+                    player2.shotBoard[row, col] = PlayerInfo.Shots.SHIP_SHOT;   // Mark that 'player2' hit a ship.
 
-                if (!IsShipAlive(player1.shipBoard, row, col))   // Check if the ship was killed.
-                    --player1.shipsAlive;
+                    BoardSquares square = player1.shipBoard[row, col];  // Return value.
 
-                BoardSquares square = player1.shipBoard[row, col];  // Return value.
+                    // Mark that the ship was hit.
+                    // Note that 'DEAD_<ship_type> == <ship_type> - NUMBER_OF_SHIP_TYPES'.
+                    player1.shipBoard[row, col] = (BoardSquares)((int)player1.shipBoard[row, col] - (int)NUMBER_OF_SHIP_TYPES);
 
-                // Mark that the ship was hit.
-                // Note that 'DEAD_<ship_type> == <ship_type> - NUMBER_OF_SHIP_TYPES'.
-                player1.shipBoard[row, col] = (BoardSquares)((int)player1.shipBoard[row, col] - (int)NUMBER_OF_SHIP_TYPES);
+                    if (!IsShipAlive(player1.shipBoard, row, col))   // Check if the ship was killed.
+                        --player1.shipsAlive;
 
-                return square;
-            }
-            else    // A ship was not hit.
-            {
-                // Mark down the shot if it was not marked already.
-                if (player2.shotBoard[row, col] == PlayerInfo.Shots.NO_SHOT)
-                    player2.shotBoard[row, col] = PlayerInfo.Shots.WATER_SHOT;
+                    return square;
 
-                return player1.shipBoard[row, col];
+                // Ship is not hit.
+                default:
+                    // Mark down the shot if it was not marked already.
+                    if (player2.shotBoard[row, col] != PlayerInfo.Shots.SHIP_SHOT)
+                        player2.shotBoard[row, col] = PlayerInfo.Shots.WATER_SHOT;
+
+                    return player1.shipBoard[row, col];
             }
         }
         // Marks the given square on player1's shot board.

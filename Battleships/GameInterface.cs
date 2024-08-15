@@ -30,7 +30,7 @@ namespace Battleships
                 System.Console.Clear();
             }
 
-            // Announce the winner and pring their ship board.
+            // Announce the winner and print their ship board.
             if(game.Winner() == -1)
             {
                 System.Console.WriteLine();
@@ -39,6 +39,8 @@ namespace Battleships
                 PrintShipBoard(game.Player1ShipBoard);
                 System.Console.WriteLine(game.Player1Name + "'s shot board:");
                 PrintShotBoard(game.Player1ShotBoard);
+                System.Console.WriteLine(game.Player2Name + "'s ship board:");
+                PrintShipBoard(game.Player2ShipBoard);
                 System.Console.WriteLine(game.Player2Name + "'s shot board:");
                 PrintShotBoard(game.Player2ShotBoard);
             }
@@ -50,6 +52,8 @@ namespace Battleships
                 PrintShipBoard(game.Player2ShipBoard);
                 System.Console.WriteLine(game.Player2Name + "'s shot board:");
                 PrintShotBoard(game.Player2ShotBoard);
+                System.Console.WriteLine(game.Player1Name + "'s ship board:");
+                PrintShipBoard(game.Player1ShipBoard);
                 System.Console.WriteLine(game.Player1Name + "'s shot board:");
                 PrintShotBoard(game.Player1ShotBoard);
             }
